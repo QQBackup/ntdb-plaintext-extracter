@@ -1,3 +1,4 @@
+// Package main 是一个解析消息写入 parquet 以备 AI 训练的示例, 兼容 Llama3.2 对话格式
 package main
 
 import (
@@ -10,13 +11,13 @@ import (
 	"time"
 	"unicode/utf8"
 
-	sql "github.com/FloatTech/sqlite"
 	"github.com/xitongsys/parquet-go-source/local"
 	"github.com/xitongsys/parquet-go/parquet"
 	"github.com/xitongsys/parquet-go/source"
 	"github.com/xitongsys/parquet-go/writer"
 
 	"github.com/QQBackup/ntdb-plaintext-extracter/model"
+	"github.com/QQBackup/ntdb-plaintext-extracter/ntdb"
 )
 
 const debug = false
@@ -160,29 +161,11 @@ func main() {
 			}
 		}
 		if strings.HasSuffix(name, ".db") {
-			db := sql.New(name)
-			err := db.Open(time.Hour)
+			db, err := ntdb.NewNTDatabase(name, time.Hour)
 			if err != nil {
 				panic(err)
 			}
-			err = db.FindFor("group_msg_table", &ln, "WHERE [40011]=2 AND [40012]=1 ORDER BY [40050]", func() error {
-				if ln.SenderName == "" {
-					ln.SenderName = ln.SenderName2
-				}
-				if ln.SenderName == "" {
-					ln2 := model.Row{}
-					err = db.Find("group_msg_table", &ln2, "WHERE [40020]=? AND ([40090]<>'' OR [40093]<>'')", ln.UserID)
-					if err != nil {
-						fmt.Println("get user name of", ln.UserID, "err:", err)
-					}
-					ln.SenderName = ln2.SenderName
-					if ln.SenderName == "" {
-						ln.SenderName = ln2.SenderName2
-					}
-				}
-				if *printonly {
-					return iterfn(ln.Msg.String())
-				}
+			err = db.RangeMessages(func(ln *model.Row) error {
 				msg := urlre.ReplaceAllString(ln.Msg.String(), "")
 				msg = hashre.ReplaceAllString(msg, "")
 				if debug {
