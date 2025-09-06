@@ -4,7 +4,7 @@ import "fmt"
 
 type Row struct {
 	ID          int64   `db:"40001"`
-	Uin         int64   `db:"40002"`
+	Unk0        int64   `db:"40002"`
 	MsgID       int64   `db:"40003"`
 	Unk1        int     `db:"40010"`
 	MsgType1    int     `db:"40011"` // 2 is normal
@@ -35,7 +35,7 @@ type Row struct {
 	Unk12       []byte  `db:"40801"`
 	Unk13       *[]byte `db:"40605"`
 	GroupID3    int64   `db:"40030"`
-	Unk14       int64   `db:"40033"`
+	Uin         int64   `db:"40033"` // Uin 一般为QQ号
 }
 
 type Message []byte
