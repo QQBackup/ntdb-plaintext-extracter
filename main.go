@@ -2,8 +2,8 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -13,16 +13,44 @@ import (
 )
 
 func main() {
-	chats := os.Args[1:] // 聊天记录文件路径 (.db)
+	pg := flag.Bool("pg", false, "print all available group IDs")
+	g := flag.Int64("g", 0, "print messages in this group")
+	ver := flag.Int("ver", 0, "the database version, try another if panic (available: 0-1)")
+	flag.Parse()
 
+	chats := flag.Args() // 聊天记录文件路径 (.db)
+
+	switch *ver {
+	case 0:
+		domain[model.GroupMessageTableRow](*pg, *g, chats)
+	case 1:
+		domain[model.GroupMessageTableRowNew](*pg, *g, chats)
+	default:
+		panic("unsupported version: " + strconv.Itoa(*ver))
+	}
+}
+
+func domain[G model.GroupMessageTables](pg bool, g int64, chats []string) {
 	for _, name := range chats {
 		if strings.HasSuffix(name, ".db") {
-			db, err := ntdb.NewNTDatabase(name, time.Hour)
+			fmt.Println("---------------", name, "---------------")
+			db, err := ntdb.NewNTDatabase[G](name, time.Hour)
 			if err != nil {
 				panic(err)
 			}
-			err = db.RangeMessages(func(ln *model.Row) error {
-				inf, err := db.GetUserInfoByUserID(ln.UserID) // this is slow, use cache in production env.
+			if pg {
+				gids, err := db.GetAllGroupIDs()
+				if err != nil {
+					panic(err)
+				}
+				for _, gid := range gids {
+					fmt.Println(gid)
+				}
+				continue
+			}
+			err = db.RangeMessages(g, func(lng *G) error {
+				ln := model.ToSmallestGroupMessageTable(lng)
+				inf, err := db.GetGroupUserInfoByUserID(ln.UserID) // this is slow, use cache in production env.
 				if err != nil {
 					return err
 				}
@@ -39,6 +67,8 @@ func main() {
 				return nil
 			})
 			if err != nil {
+				fmt.Println("[HINT] failed to parse group messages, maybe try a different -ver parameter?")
+				fmt.Println()
 				panic(err)
 			}
 			_ = db.Close()
