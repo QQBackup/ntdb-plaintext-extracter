@@ -15,7 +15,7 @@ import (
 func main() {
 	pg := flag.Bool("pg", false, "print all available group IDs")
 	g := flag.Int64("g", 0, "print messages in this group")
-	ver := flag.Int("ver", 0, "the database version, try another if panic (available: 0-1)")
+	ver := flag.Int("ver", 0, "the database version, try another if panic (available: 0-2)")
 	flag.Parse()
 
 	chats := flag.Args() // 聊天记录文件路径 (.db)
@@ -24,7 +24,9 @@ func main() {
 	case 0:
 		domain[model.GroupMessageTableRow](*pg, *g, chats)
 	case 1:
-		domain[model.GroupMessageTableRowNew](*pg, *g, chats)
+		domain[model.GroupMessageTableRowVer1](*pg, *g, chats)
+	case 2:
+		domain[model.GroupMessageTableRowVer2](*pg, *g, chats)
 	default:
 		panic("unsupported version: " + strconv.Itoa(*ver))
 	}
