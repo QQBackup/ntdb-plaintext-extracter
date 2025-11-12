@@ -33,7 +33,7 @@ func (ntdb *NTDatabase[G]) GetGroupUserInfoByUserID(userID string) (*UserInfo, e
 	err := (*sql.Sqlite)(ntdb).Find(
 		"group_msg_table", (*G)(unsafe.Pointer(&ln)),
 		"WHERE [40020]=? AND ([40090]<>'' OR [40093]<>'')",
-		ln.UserID,
+		userID,
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, helper.ThisFuncName()+" "+userID)
